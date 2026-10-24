@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+}
+
+group = 'ru.netology'
+version = '1.0-SNAPSHOT'
+
+// Используем Java 11 для исходного кода
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+}
+
+// Кодировка файлов
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+// Репозиторий для загрузки библиотек
+repositories {
+    mavenCentral()
+}
+
+// Зависимости проекта
+dependencies {
+
+    // JUnit 5 для запуска автотестов
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+
+    // Selenium для автоматизации браузера
+    testImplementation 'org.seleniumhq.selenium:selenium-java:4.29.0'
+
+    // WebDriverManager для настройки ChromeDriver
+    testImplementation 'io.github.bonigarcia:webdrivermanager:5.9.3'
+
+    // JUnit Platform Launcher для совместимости с Gradle 9
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
+}
+
+// Настройки запуска тестов
+test {
+
+    // Используем JUnit 5
+    useJUnitPlatform()
+
+    // Настройка браузера
+    systemProperty 'chromeoptions.prefs',
+            System.getProperty(
+                    'chromeoptions.prefs',
+                    'profile.password_manager_leak_detection=false'
+            )
+
+    // Показываем результаты тестирования в консоли
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat 'full'
+    }
+}
