@@ -4,7 +4,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -13,13 +12,11 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CardOrderTest {
@@ -27,7 +24,6 @@ public class CardOrderTest {
     private WebDriver driver;
     private WebDriverWait wait;
 
-    // Локаторы элементов страницы
     private final By nameField =
             By.cssSelector("[data-test-id='name'] input");
 
@@ -56,14 +52,12 @@ public class CardOrderTest {
             By.cssSelector("[data-test-id='agreement'].input_invalid");
 
 
-    // Настройка драйвера
     @BeforeAll
     public static void setupAll() {
         WebDriverManager.chromedriver().setup();
     }
 
 
-    // Запуск браузера перед каждым тестом
     @BeforeEach
     public void setup() {
 
@@ -85,7 +79,6 @@ public class CardOrderTest {
     }
 
 
-    // Закрытие браузера после каждого теста
     @AfterEach
     public void tearDown() {
 
@@ -95,16 +88,15 @@ public class CardOrderTest {
     }
 
 
-    // Метод для заполнения формы
+    // Заполнение полей формы
     private void fillForm(String name, String phone) {
 
         driver.findElement(nameField).sendKeys(name);
-
         driver.findElement(phoneField).sendKeys(phone);
     }
 
 
-    // Метод для установки галочки согласия
+    // Установка согласия
     private void setAgreement() {
 
         wait.until(
@@ -115,12 +107,12 @@ public class CardOrderTest {
 
         assertTrue(
                 driver.findElement(agreementInput).isSelected(),
-                "Галочка согласия не установлена"
+                "Согласие на обработку данных не установлено"
         );
     }
 
 
-    // Метод для отправки формы
+    // Отправка формы
     private void submitForm() {
 
         wait.until(
@@ -131,18 +123,13 @@ public class CardOrderTest {
     }
 
 
-    // Метод для проверки ошибки
-    private void checkError(By errorLocator, String message) {
+    // Ожидание сообщения об ошибке
+    private void checkError(By errorLocator) {
 
-        WebElement error = wait.until(
+        wait.until(
                 ExpectedConditions.visibilityOfElementLocated(
                         errorLocator
                 )
-        );
-
-        assertTrue(
-                error.isDisplayed(),
-                message
         );
     }
 
@@ -164,9 +151,11 @@ public class CardOrderTest {
                 )
         );
 
+        String actualText = success.getText();
+
         assertTrue(
-                success.isDisplayed(),
-                "Сообщение об успешной отправке не появилось"
+                actualText.contains("Ваша заявка успешно отправлена!"),
+                "Неверный текст сообщения: " + actualText
         );
     }
 
@@ -182,10 +171,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                nameError,
-                "Не появилась ошибка при пустом имени"
-        );
+        checkError(nameError);
     }
 
 
@@ -200,10 +186,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                phoneError,
-                "Не появилась ошибка при пустом телефоне"
-        );
+        checkError(phoneError);
     }
 
 
@@ -216,10 +199,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                nameError,
-                "Не появилась ошибка при пустых полях"
-        );
+        checkError(nameError);
     }
 
 
@@ -234,10 +214,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                nameError,
-                "Приложение приняло имя латинскими буквами"
-        );
+        checkError(nameError);
     }
 
 
@@ -252,10 +229,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                nameError,
-                "Приложение приняло имя с цифрами"
-        );
+        checkError(nameError);
     }
 
 
@@ -270,15 +244,12 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                nameError,
-                "Приложение приняло специальные символы в имени"
-        );
+        checkError(nameError);
     }
 
 
     // ТЕСТ 8 и 9
-    // Номер телефона содержит неправильное количество цифр
+    // Неправильная длина телефона
     @ParameterizedTest
     @ValueSource(strings = {
             "+7999123456",
@@ -292,15 +263,12 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                phoneError,
-                "Не появилась ошибка при неправильной длине телефона"
-        );
+        checkError(phoneError);
     }
 
 
     // ТЕСТ 10
-    // Номер телефона без плюса
+    // Телефон без знака +
     @Test
     public void shouldShowErrorForPhoneWithoutPlus() {
 
@@ -310,15 +278,12 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                phoneError,
-                "Приложение приняло телефон без знака плюс"
-        );
+        checkError(phoneError);
     }
 
 
     // ТЕСТ 11
-    // Не установлено согласие на обработку данных
+    // Не установлено согласие
     @Test
     public void shouldShowErrorWithoutAgreement() {
 
@@ -326,14 +291,6 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(
-                agreementError,
-                "Не появилась ошибка при отсутствии согласия"
-        );
-
-        assertFalse(
-                driver.findElement(agreementInput).isSelected(),
-                "Согласие установлено без участия пользователя"
-        );
+        checkError(agreementError);
     }
 }

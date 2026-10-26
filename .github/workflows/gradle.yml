@@ -27,24 +27,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Start banking application
-        run: |
-          java -jar ./artifacts/app-order.jar > app.log 2>&1 &
-          for i in {1..30}; do
-            if curl --silent --fail http://localhost:9999 > /dev/null; then
-              echo "Application started successfully"
-              exit 0
-            fi
-            sleep 1
-          done
-          cat app.log
-          exit 1
+        run: java -jar ./artifacts/app-order.jar &
 
       - name: Run automated tests
         run: ./gradlew clean test
-
-      - name: Upload test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-report
-          path: build/reports/tests/test/
