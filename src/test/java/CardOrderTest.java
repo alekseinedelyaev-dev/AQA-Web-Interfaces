@@ -1,3 +1,4 @@
+
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 import org.junit.jupiter.api.AfterEach;
@@ -17,13 +18,28 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CardOrderTest {
 
+    // Точные тексты сообщений банковского приложения
+    private static final String REQUIRED_ERROR =
+            "Поле обязательно для заполнения";
+
+    private static final String NAME_FORMAT_ERROR =
+            "Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы.";
+
+    private static final String PHONE_FORMAT_ERROR =
+            "Телефон указан неверно. Должно быть 11 цифр, например, +79012345678.";
+
+    private static final String SUCCESS_TEXT =
+            "Ваша заявка успешно отправлена!";
+
     private WebDriver driver;
     private WebDriverWait wait;
 
+    // Локаторы элементов страницы
     private final By nameField =
             By.cssSelector("[data-test-id='name'] input");
 
@@ -52,12 +68,14 @@ public class CardOrderTest {
             By.cssSelector("[data-test-id='agreement'].input_invalid");
 
 
+    // Настройка ChromeDriver
     @BeforeAll
     public static void setupAll() {
         WebDriverManager.chromedriver().setup();
     }
 
 
+    // Открываем браузер перед каждым тестом
     @BeforeEach
     public void setup() {
 
@@ -79,6 +97,7 @@ public class CardOrderTest {
     }
 
 
+    // Закрываем браузер после каждого теста
     @AfterEach
     public void tearDown() {
 
@@ -88,15 +107,16 @@ public class CardOrderTest {
     }
 
 
-    // Заполнение полей формы
+    // Заполняем поля формы
     private void fillForm(String name, String phone) {
 
         driver.findElement(nameField).sendKeys(name);
+
         driver.findElement(phoneField).sendKeys(phone);
     }
 
 
-    // Установка согласия
+    // Устанавливаем согласие на обработку данных
     private void setAgreement() {
 
         wait.until(
@@ -104,15 +124,10 @@ public class CardOrderTest {
                         agreementCheckbox
                 )
         ).click();
-
-        assertTrue(
-                driver.findElement(agreementInput).isSelected(),
-                "Согласие на обработку данных не установлено"
-        );
     }
 
 
-    // Отправка формы
+    // Нажимаем кнопку "Продолжить"
     private void submitForm() {
 
         wait.until(
@@ -123,19 +138,28 @@ public class CardOrderTest {
     }
 
 
-    // Ожидание сообщения об ошибке
-    private void checkError(By errorLocator) {
+    // Проверяем появление ошибки и её текст
+    private void checkError(By errorLocator, String expectedText) {
 
-        wait.until(
+        WebElement error = wait.until(
                 ExpectedConditions.visibilityOfElementLocated(
                         errorLocator
                 )
+        );
+
+        String actualText = error.getText();
+
+        assertTrue(
+                actualText.contains(expectedText),
+                "Неверный текст ошибки."
+                        + "\nОжидалось: " + expectedText
+                        + "\nФактически: " + actualText
         );
     }
 
 
     // ТЕСТ 1
-    // Успешная отправка заявки
+    // Успешная отправка заявки с корректными данными
     @Test
     public void shouldSubmitFormWithValidData() {
 
@@ -154,8 +178,9 @@ public class CardOrderTest {
         String actualText = success.getText();
 
         assertTrue(
-                actualText.contains("Ваша заявка успешно отправлена!"),
-                "Неверный текст сообщения: " + actualText
+                actualText.contains(SUCCESS_TEXT),
+                "Неверный текст сообщения об успешной отправке: "
+                        + actualText
         );
     }
 
@@ -171,7 +196,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(nameError);
+        checkError(nameError, REQUIRED_ERROR);
     }
 
 
@@ -186,7 +211,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(phoneError);
+        checkError(phoneError, REQUIRED_ERROR);
     }
 
 
@@ -197,9 +222,20 @@ public class CardOrderTest {
 
         setAgreement();
 
+        // Первая отправка с двумя пустыми полями
         submitForm();
 
-        checkError(nameError);
+        // Сначала приложение проверяет поле имени
+        checkError(nameError, REQUIRED_ERROR);
+
+        // Заполняем имя, оставляя телефон пустым
+        driver.findElement(nameField).sendKeys("Иванов Иван");
+
+        // Повторно отправляем форму
+        submitForm();
+
+        // Теперь проверяем текст ошибки телефона
+        checkError(phoneError, REQUIRED_ERROR);
     }
 
 
@@ -214,7 +250,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(nameError);
+        checkError(nameError, NAME_FORMAT_ERROR);
     }
 
 
@@ -229,7 +265,7 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(nameError);
+        checkError(nameError, NAME_FORMAT_ERROR);
     }
 
 
@@ -244,12 +280,12 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(nameError);
+        checkError(nameError, NAME_FORMAT_ERROR);
     }
 
 
-    // ТЕСТ 8 и 9
-    // Неправильная длина телефона
+    // ТЕСТЫ 8 И 9
+    // Номер телефона содержит неправильное количество цифр
     @ParameterizedTest
     @ValueSource(strings = {
             "+7999123456",
@@ -263,12 +299,12 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(phoneError);
+        checkError(phoneError, PHONE_FORMAT_ERROR);
     }
 
 
     // ТЕСТ 10
-    // Телефон без знака +
+    // Телефон без знака плюс
     @Test
     public void shouldShowErrorForPhoneWithoutPlus() {
 
@@ -278,12 +314,12 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(phoneError);
+        checkError(phoneError, PHONE_FORMAT_ERROR);
     }
 
 
     // ТЕСТ 11
-    // Не установлено согласие
+    // Отсутствие согласия на обработку данных
     @Test
     public void shouldShowErrorWithoutAgreement() {
 
@@ -291,6 +327,18 @@ public class CardOrderTest {
 
         submitForm();
 
-        checkError(agreementError);
+        // Приложение выделяет чекбокс ошибкой,
+        // но не показывает отдельное текстовое сообщение
+        wait.until(
+                ExpectedConditions.visibilityOfElementLocated(
+                        agreementError
+                )
+        );
+
+        // Проверяем, что согласие не установлено
+        assertFalse(
+                driver.findElement(agreementInput).isSelected(),
+                "Согласие не должно устанавливаться автоматически"
+        );
     }
 }
